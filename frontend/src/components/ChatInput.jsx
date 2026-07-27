@@ -69,43 +69,88 @@ function ChatInput() {
 
 
   const handleSendMessage = async () => {
-    dispatch(setIsLoading(true))
-    let conversation = selectedConversation
+  if (!value.trim() || isLoading) return;
+
+  dispatch(setIsLoading(true));
+
+  try {
+    let conversation = selectedConversation;
+
     if (!conversation) {
-      dispatch(setMessages([]))
-      const conv = await createConversation()
-      dispatch(setSelectedConversation(conv))
+      dispatch(setMessages([]));
 
-      dispatch(addConversation(conv))
-      conversation = conv
+      const conv = await createConversation();
+
+      dispatch(setSelectedConversation(conv));
+      dispatch(addConversation(conv));
+
+      conversation = conv;
     }
 
-    if (conversation.title == "New Chat") {
-      await updateConversation({ id: conversation?._id, title: value.trim() })
-      dispatch(setConvTitle({ conversationId: conversation?._id, title: value.slice(0, 40) }))
+    if (conversation.title === "New Chat") {
+      await updateConversation({
+        id: conversation._id,
+        title: value.trim(),
+      });
+
+      dispatch(
+        setConvTitle({
+          conversationId: conversation._id,
+          title: value.slice(0, 40),
+        })
+      );
     }
 
+    const formData = new FormData();
 
-    console.log(selectedFile)
-    const formData = new FormData()
-    formData.append("prompt", value.trim())
-    formData.append("conversationId", conversation?._id)
-    formData.append("agent", selectedAgent.toLowerCase())
+    formData.append("prompt", value.trim());
+    formData.append("conversationId", conversation._id);
+    formData.append("agent", selectedAgent.toLowerCase());
+
     if (selectedFile) {
-      formData.append("file", selectedFile)
+      formData.append("file", selectedFile);
     }
 
+    dispatch(addMessage({ role: "user", content: value.trim() }));
 
+    setValue("");
 
-    dispatch(addMessage({ role: "user", content: value.trim() }))
-    setValue("")
-    const data = await sendMessage(formData)
-    dispatch(setIsLoading(false))
-    setSelectedFile(null)
-    dispatch(setArtifacts(data.artifacts || []))
-    dispatch(addMessage({ role: "assistant", content: data?.answer, images: data?.images }))
-    console.log(data)
+    const data = await sendMessage(formData);
+
+    console.log(data);
+
+    if (!data) {
+      throw new Error("No response received from server.");
+    }
+
+    dispatch(setArtifacts(data.artifacts ?? []));
+
+    dispatch(
+      addMessage({
+        role: "assistant",
+        content: data.answer ?? data.aiResponse ?? "Done.",
+        images: data.images ?? [],
+      })
+    );
+
+    setSelectedFile(null);
+
+    if (fileRef.current) {
+      fileRef.current.value = "";
+    }
+  } catch (err) {
+    console.error(err);
+
+    dispatch(addMessage({
+    role: "assistant",
+    content: data?.aiResponse ?? data?.answer ?? "Done.",
+    images: data?.images ?? []
+}));
+    dispatch(setArtifacts([]));
+} finally {
+    dispatch(setIsLoading(false));
   }
+};
 
   const agents = [
     {
@@ -240,7 +285,11 @@ function ChatInput() {
             <input type="file" accept='.pdf,image/*' hidden ref={fileRef} onChange={(e) => {
               const file = e.target.files[0]
               if (file) {
-                setSelectedFile(file)
+                setSelectedFile(null);
+
+if (fileRef.current) {
+    fileRef.current.value = "";
+}
               }
             }} />
 
