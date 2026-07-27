@@ -1,24 +1,21 @@
-FROM node
+FROM node:22
 
 WORKDIR /app
 
-
+# Copy root package files
 COPY package*.json ./
+
+# Install root dependencies (shared dependencies like ioredis)
 RUN npm install
 
-COPY ./gateway/package*.json ./gateway/
-RUN cd gateway && npm install
+# Copy the entire backend
+COPY . .
 
-COPY gateway ./gateway
-COPY shared ./shared
+# Install gateway-specific dependencies
+RUN npm install --prefix gateway
 
 WORKDIR /app/gateway
 
 EXPOSE 8000
 
-CMD [ "npm","start" ]
-
-
-
-
-
+CMD ["npm", "start"]
