@@ -10,11 +10,21 @@ import { proxyWithHeader } from "./utils/proxyWithHeader.js"
 import morgan from "morgan"
 const port =process.env.PORT
 
-const app=express()
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://d18s84dy65fr7b.cloudfront.net",
+];
+
 app.use(cors({
-    origin:process.env.FRONTEND_URL,
-    credentials:true
-}))
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+}));
 app.use(morgan("dev"))
 app.use(cookieParser())
 app.use("/api/auth",proxy(process.env.AUTH_SERVICE))
