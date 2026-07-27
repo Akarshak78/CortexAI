@@ -24,9 +24,10 @@ User Request:
 ${state.prompt}
     `)
     const intent=intentRes.content
-    if(intent=="CODE_GENERATION"){
-        const prompt=`
-        You are CortexAI Coding Agent.
+    if (intent.trim() === "CODE_GENERATION") {
+
+    const prompt = `
+You are CortexAI Coding Agent.
 
 Generate the requested project.
 
@@ -48,12 +49,7 @@ Rules:
 - Beautiful spacing
 - Single page unless user asks otherwise.
 
-IMAGES
-=========================
-
-Always use real Unsplash images.
-
-Never use placeholders.
+Use real Unsplash images.
 
 Return ONLY valid JSON.
 
@@ -76,74 +72,72 @@ Schema:
   ]
 }
 
-Rules:
+IMPORTANT:
 
-- Output must start with {
-- Output must end with }
+- Output MUST begin with {
+- Output MUST end with }
 - No markdown
 - No explanation
-- No extra text
 - No \`\`\`
-- Never mention intent
+- No extra text
+
+If the requested project is too large, simplify the design instead of truncating the response.
 
 User Request:
 ${state.prompt}
-        ` 
-        const res=await llm.invoke(prompt)
-        console.log(res)
-        const data=JSON.parse(res.content)
-        await deductCredits(state.userId,"coding")
-        
-        return {
-            ...state,
-            aiResponse:"Code Generated Successfully.",
-            artifacts:[
-                {
-                    id:Date.now(),
-                    type:"Project",
-                    files:data.files || [],
-                    title:state.prompt
-                }
-            ]
-        }
+`;
+
+    const res = await llm.invoke(prompt);
+
+    console.log("Finish Reason:", res?.response_metadata?.finish_reason);
+    console.log("Completion Tokens:", res?.response_metadata?.tokenUsage?.completion_tokens);
+
+    if (res?.response_metadata?.finish_reason === "length") {
+        throw new Error(
+            "The requested project is too large for a single response. Please ask for a smaller project or generate it in multiple parts."
+        );
     }
 
-    const res=await llm.invoke(`
-        The user's request is:
+    let raw = res.content.trim();
 
-${intent}
+    // Extract JSON if model adds extra text
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
 
-Return Markdown only.
+    if (start === -1 || end === -1) {
+        throw new Error("Model did not return valid JSON.");
+    }
 
-Never generate project files.
+    raw = raw.substring(start, end + 1);
 
-Use headings like:
+    let data;
 
-# Overview
+    try {
+        data = JSON.parse(raw);
+    } catch (err) {
+        console.error("JSON Parse Error");
+        console.error(raw);
 
-## Explanation
+        throw new Error(
+            "The AI returned incomplete project data. Please try a simpler prompt."
+        );
+    }
 
-## Problems
+    await deductCredits(state.userId, "coding");
 
-## Improvements
-
-## Best Practices
-
-## Optimized Code (if needed)
-
-User Request:
-
-${state.prompt}
-        `)
-
-   const data=res.content   
-   await deductCredits(state.userId,"coding")
-   
-   return {
-    ...state,
-    aiResponse:data,
-    artifacts:[]
-   }  
+    return {
+        ...state,
+        aiResponse: "Code Generated Successfully.",
+        artifacts: [
+            {
+                id: Date.now(),
+                type: "Project",
+                title: state.prompt,
+                files: data.files || []
+            }
+        ]
+    };
+}
 } catch (error) {
    console.error("Coding Agent Error:");
    console.error(error);
