@@ -82,13 +82,16 @@ Answer the user using only the above search results.
         
     }
     } catch (error) {
-        console.log(error)
-         return {
-            ...state,
-            aiResponse:error?.data?.message || "failed to generate chat"
-        }
-        
-    
-    }
+    console.error("Agent Error:");
+    console.error(error);
+    console.error(error?.message);
+    console.error(error?.stack);
+
+    return {
+        ...state,
+        aiResponse: error?.message || "Agent failed",
+        artifacts: []
+    };
+}
    
 }

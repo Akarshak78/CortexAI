@@ -54,13 +54,16 @@ return {
 }
 
     } catch (error) {
-       console.log(error)
-         return {
-            ...state,
-            aiResponse:error?.data?.message || "failed to analyze image"
-        
+   console.error("Vision Agent Error:");
+   console.error(error);
+   console.error(error?.message);
+   console.error(error?.stack);
+
+   return {
+      ...state,
+      aiResponse: error?.message || "failed to analyse image"
+   };
 }
-    }
     finally{
       await fs.unlink(state.file.path)
     }

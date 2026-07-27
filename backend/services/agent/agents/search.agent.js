@@ -15,12 +15,14 @@ export const searchAgent = async (state) => {
             images: results.images
         }
     } catch (error) {
-        console.log(error)
-        return {
-            ...state,
-            searchResults: [],
-            images: [],
-            aiResponse: error?.data?.message || "failed to search"
-        }
-    }
+   console.error("Vision Agent Error:");
+   console.error(error);
+   console.error(error?.message);
+   console.error(error?.stack);
+
+   return {
+      ...state,
+      aiResponse: error?.message || "failed to search"
+   };
+}
 }

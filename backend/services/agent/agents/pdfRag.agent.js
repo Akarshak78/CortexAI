@@ -66,12 +66,16 @@ new HumanMessage(`
 
 
    } catch (error) {
-    console.log(error)
-         return {
-            ...state,
-            aiResponse:error?.data?.message || "failed to analyze pdf"
-        }
-   }finally{
+   console.error("Vision Agent Error:");
+   console.error(error);
+   console.error(error?.message);
+   console.error(error?.stack);
+
+   return {
+      ...state,
+      aiResponse: error?.message || "failed to generate pdf"
+   };
+}finally{
          fs.unlinkSync(state.file.path)
    }
 
