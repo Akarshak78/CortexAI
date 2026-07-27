@@ -139,14 +139,19 @@ function ChatInput() {
       fileRef.current.value = "";
     }
   } catch (err) {
-    console.error(err);
+  console.error(err);
 
-    dispatch(addMessage({
-    role: "assistant",
-    content: data?.aiResponse ?? data?.answer ?? "Done.",
-    images: data?.images ?? []
-}));
-    dispatch(setArtifacts([]));
+  dispatch(
+    addMessage({
+      role: "assistant",
+      content:
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong while generating the response.",
+    })
+  );
+
+  dispatch(setArtifacts([]));
 } finally {
     dispatch(setIsLoading(false));
   }
@@ -287,9 +292,6 @@ function ChatInput() {
               if (file) {
                 setSelectedFile(null);
 
-if (fileRef.current) {
-    fileRef.current.value = "";
-}
               }
             }} />
 
@@ -303,7 +305,7 @@ if (fileRef.current) {
             </button>
           </div>
           <button
-            disabled={!value && isLoading}
+            disabled={!value.trim() || isLoading}
             onClick={handleSendMessage}
             className={`flex items-center justify-center w-8 h-8 rounded-lg border-none cursor-pointer transition-all duration-150 ${value.trim() ? "bg-linear-to-br from-indigo-500 to-violet-700 hover:opacity-90 text-white" : "bg-white/[0.05] text-slate-600 cursor-not-allowed"}`}>
           <Send size={15} />
